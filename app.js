@@ -285,27 +285,87 @@ function parseCsv() {
   });
 }
 
+function getRegionByCountry(country) {
+  const countryNorm = norm(country).toLowerCase().trim();
+  
+  // Northern Africa
+  const northernAfrica = [
+    "algeria", "egypt", "libya", "morocco", "sudan", "tunisia", "western sahara"
+  ];
+  
+  // Western Africa
+  const westernAfrica = [
+    "benin", "burkina faso", "cape verde", "côte d'ivoire", "cote d'ivoire", "ivory coast", 
+    "gambia", "ghana", "guinea", "guinea-bissau", "guinea bissau", "liberia", "mali", 
+    "mauritania", "niger", "nigeria", "senegal", "sierra leone", "togo"
+  ];
+  
+  // Eastern Africa
+  const easternAfrica = [
+    "burundi", "comoros", "djibouti", "eritrea", "ethiopia", "kenya", "madagascar",
+    "malawi", "mauritius", "mozambique", "rwanda", "seychelles", "somalia",
+    "south sudan", "tanzania", "uganda", "zambia", "zimbabwe"
+  ];
+  
+  // Central Africa
+  const centralAfrica = [
+    "angola", "cameroon", "central african republic", "chad", "congo", 
+    "democratic republic of the congo", "dr congo", "drc", "equatorial guinea", 
+    "gabon", "são tomé and príncipe", "sao tome and principe"
+  ];
+  
+  // Southern Africa
+  const southernAfrica = [
+    "botswana", "eswatini", "swaziland", "lesotho", "namibia", "south africa"
+  ];
+  
+  // Check exact matches first
+  if (northernAfrica.includes(countryNorm)) return "Northern Africa";
+  if (westernAfrica.includes(countryNorm)) return "Western Africa";
+  if (easternAfrica.includes(countryNorm)) return "Eastern Africa";
+  if (centralAfrica.includes(countryNorm)) return "Central Africa";
+  if (southernAfrica.includes(countryNorm)) return "Southern Africa";
+  
+  // Check partial matches for variations
+  if (countryNorm.includes("congo") || countryNorm.includes("drc")) return "Central Africa";
+  if (countryNorm.includes("ivory") || countryNorm.includes("côte")) return "Western Africa";
+  if (countryNorm.includes("south sudan")) return "Eastern Africa";
+  if (countryNorm.includes("são tomé") || countryNorm.includes("sao tome")) return "Central Africa";
+  if (countryNorm.includes("swaziland") || countryNorm.includes("eswatini")) return "Southern Africa";
+  
+  return "Unknown";
+}
+
 function normalizeRows(rows) {
-  return rows.map((r, idx) => {
-    const lat = toNum(r.latitude);
-    const lng = toNum(r.longitude);
-    return {
-      _id: String(idx),
-      hub_name: norm(r.hub_name),
-      hub_type: norm(r.hub_type),
-      operational_status: norm(r.operational_status),
-      street_address: norm(r.street_address),
-      city: norm(r.city),
-      country: norm(r.country),
-      region: norm(r.region) || "", // if present
-      website: norm(r.website),
-      email: norm(r.email),
-      phone: norm(r.phone),
-      source: norm(r.source),
-      latitude: lat,
-      longitude: lng
-    };
-  });
+  return rows
+    .filter(r => {
+      // Remove France from the dataset
+      const country = norm(r.country).toLowerCase();
+      return country !== "france";
+    })
+    .map((r, idx) => {
+      const lat = toNum(r.latitude);
+      const lng = toNum(r.longitude);
+      const country = norm(r.country);
+      const region = norm(r.region) || getRegionByCountry(country);
+      
+      return {
+        _id: String(idx),
+        hub_name: norm(r.hub_name),
+        hub_type: norm(r.hub_type),
+        operational_status: norm(r.operational_status),
+        street_address: norm(r.street_address),
+        city: norm(r.city),
+        country: country,
+        region: region,
+        website: norm(r.website),
+        email: norm(r.email),
+        phone: norm(r.phone),
+        source: norm(r.source),
+        latitude: lat,
+        longitude: lng
+      };
+    });
 }
 
 function calculateAnalytics(rows) {
