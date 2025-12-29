@@ -75,32 +75,68 @@
   </header>
 
   <main>
-    <section class="map-panel">
-      <div id="map"></div>
+    <nav class="tabs">
+      <button class="tab active" data-tab="mapTab">Map</button>
+      <button class="tab" data-tab="dashboardTab">Dashboard</button>
+    </nav>
+  
+    <section id="mapTab" class="tab-panel active">
+      <div class="grid-two">
+        <section class="map-panel">
+          <div id="map"></div>
+        </section>
+  
+        <section class="table-panel">
+          <table id="hubsTable" class="display" style="width:100%">
+            <thead>
+              <tr>
+                <th>Hub</th>
+                <th>Type</th>
+                <th>City</th>
+                <th>Country</th>
+                <th>Website</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+  
+          <footer class="footnote">
+            <span>Tip: click a map marker to highlight that hub in the table.</span>
+          </footer>
+        </section>
+      </div>
     </section>
-
-    <section class="table-panel">
-      <table id="hubsTable" class="display" style="width:100%">
-        <thead>
-          <tr>
-            <th>Hub</th>
-            <th>Type</th>
-            <th>City</th>
-            <th>Country</th>
-            <th>Website</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>Source</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <footer class="footnote">
-        <span>
-          Tip: click a map marker to highlight that hub in the table.
-        </span>
-      </footer>
+  
+    <section id="dashboardTab" class="tab-panel">
+      <div class="dash-grid">
+        <div class="dash-card">
+          <h3>KPIs (filtered)</h3>
+          <div class="kpis">
+            <div class="kpi"><div class="kpi-label">Hubs</div><div class="kpi-value" id="kpiHubs">—</div></div>
+            <div class="kpi"><div class="kpi-label">Countries</div><div class="kpi-value" id="kpiCountries">—</div></div>
+            <div class="kpi"><div class="kpi-label">Cities</div><div class="kpi-value" id="kpiCities">—</div></div>
+            <div class="kpi"><div class="kpi-label">Geocoded</div><div class="kpi-value" id="kpiGeocoded">—</div></div>
+          </div>
+        </div>
+  
+        <div class="dash-card">
+          <h3>Top Countries (filtered)</h3>
+          <canvas id="chartTopCountries"></canvas>
+        </div>
+  
+        <div class="dash-card">
+          <h3>Top Cities (filtered)</h3>
+          <canvas id="chartTopCities"></canvas>
+        </div>
+  
+        <div class="dash-card">
+          <h3>Hub Type Mix (filtered)</h3>
+          <canvas id="chartHubTypes"></canvas>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -119,6 +155,7 @@
   <!-- CSV parser -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

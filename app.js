@@ -9,6 +9,9 @@ let map = null;
 let clusterLayer = null;
 let markersById = new Map(); // id -> marker
 let rowIdByMarker = new Map();
+let chartTopCountries = null;
+let chartTopCities = null;
+let chartHubTypes = null;
 
 function norm(s) {
   return String(s ?? "").trim();
@@ -22,6 +25,25 @@ function toNum(x) {
 function uniqueSorted(values) {
   return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }
+
+function countBy(rows, keyFn) {
+    const m = new Map();
+    rows.forEach(r => {
+      const k = keyFn(r);
+      if (!k) return;
+      m.set(k, (m.get(k) || 0) + 1);
+    });
+    return m;
+  }
+  
+  function topN(map, n) {
+    return [...map.entries()].sort((a,b) => b[1]-a[1]).slice(0, n);
+  }
+  
+  function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
 
 function setStats(filteredCount) {
   const total = allRows.length;
@@ -186,6 +208,79 @@ function initTable(rows) {
   });
 }
 
+function renderDashboard(rows) {
+    // KPIs
+    const hubs = rows.length;
+    const countries = new Set(rows.map(r => r.country).filter(Boolean)).size;
+    const cities = new Set(rows.map(r => r.city).filter(Boolean)).size;
+    const geocoded = rows.filter(r => r.latitude != null && r.longitude != null).length;
+  
+    setText("kpiHubs", hubs.toLocaleString());
+    setText("kpiCountries", countries.toLocaleString());
+    setText("kpiCities", cities.toLocaleString());
+    setText("kpiGeocoded", `${geocoded.toLocaleString()} (${hubs ? Math.round((geocoded/hubs)*100) : 0}%)`);
+  
+    // Top Countries
+    const countryMap = countBy(rows, r => r.country);
+    const topCountries = topN(countryMap, 12);
+    const tcLabels = topCountries.map(x => x[0]);
+    const tcData = topCountries.map(x => x[1]);
+  
+    // Top Cities (include country to disambiguate)
+    const cityMap = countBy(rows, r => (r.city && r.country) ? `${r.city}, ${r.country}` : "");
+    const topCities = topN(cityMap, 12);
+    const tciLabels = topCities.map(x => x[0]);
+    const tciData = topCities.map(x => x[1]);
+  
+    // Hub Type Mix
+    const typeMap = countBy(rows, r => r.hub_type);
+    const types = [...typeMap.entries()].sort((a,b)=>b[1]-a[1]);
+    const htLabels = types.map(x => x[0]);
+    const htData = types.map(x => x[1]);
+  
+    // Create/update charts
+    const mk = (canvasId, existing, cfg) => {
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return existing;
+      if (existing) {
+        existing.data.labels = cfg.data.labels;
+        existing.data.datasets[0].data = cfg.data.datasets[0].data;
+        existing.update();
+        return existing;
+      }
+      return new Chart(ctx, cfg);
+    };
+  
+    chartTopCountries = mk("chartTopCountries", chartTopCountries, {
+      type: "bar",
+      data: { labels: tcLabels, datasets: [{ label: "Hubs", data: tcData }] },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { x: { ticks: { maxRotation: 60, minRotation: 0 } } }
+      }
+    });
+  
+    chartTopCities = mk("chartTopCities", chartTopCities, {
+      type: "bar",
+      data: { labels: tciLabels, datasets: [{ label: "Hubs", data: tciData }] },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { x: { ticks: { maxRotation: 60, minRotation: 0 } } }
+      }
+    });
+  
+    chartHubTypes = mk("chartHubTypes", chartHubTypes, {
+      type: "doughnut",
+      data: { labels: htLabels, datasets: [{ label: "Hubs", data: htData }] },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "bottom" } }
+      }
+    });
+  }
+
 function highlightRow(rowid) {
   // scroll + highlight
   document.querySelectorAll("#hubsTable tbody tr").forEach(tr => tr.classList.remove("row-highlight"));
@@ -212,6 +307,8 @@ function applyFilters() {
 
   // update markers
   rebuildMarkers(rows);
+
+  renderDashboard(rows)
 }
 
 function wireControls() {
@@ -233,6 +330,21 @@ function wireControls() {
     document.getElementById("searchInput").value = "";
     applyFilters();
   });
+
+    // Tabs
+    document.querySelectorAll(".tab").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+          document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+          btn.classList.add("active");
+          document.getElementById(btn.dataset.tab).classList.add("active");
+    
+          // Leaflet needs a resize invalidate when shown
+          if (btn.dataset.tab === "mapTab" && map) {
+            setTimeout(() => map.invalidateSize(), 150);
+          }
+        });
+      });
 }
 
 function parseCsv() {
