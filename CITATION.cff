@@ -6,7 +6,10 @@ license: CC-BY-4.0
 message: >
   If you use this dataset, please cite it as below.
 authors:
-  - name: Kantologist
+  - family-names: Azeez
+    given-names: Oluwafemi
+    alias: kantologist
+    website: https://github.com/kantologist
 repository-code: https://github.com/kantologist/African-tech-hubs
 url: https://kantologist.github.io/African-tech-hubs/
 abstract: >
