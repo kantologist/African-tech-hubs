@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+title: African Tech & Innovation Hubs Dataset
+version: 1.1
+date-released: 2025-01-01
+license: CC-BY-4.0
+message: >
+  If you use this dataset, please cite it as below.
+authors:
+  - name: Kantologist
+repository-code: https://github.com/kantologist/African-tech-hubs
+url: https://kantologist.github.io/African-tech-hubs/
+abstract: >
+  A comprehensive, verified, and geocoded dataset of technology and innovation hubs
+  across Africa, including incubators, accelerators, coworking spaces, university labs,
+  makerspaces, and ecosystem organizations.
+keywords:
+  - Africa
+  - Innovation
+  - Technology hubs
+  - Startups
+  - Incubators
+  - Accelerators
