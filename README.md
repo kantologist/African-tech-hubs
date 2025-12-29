@@ -86,10 +86,9 @@ See `LICENSE` for full text.
 ## 🧾 Citation
 If you use this dataset in research, policy, or publications, please cite:
 
-> African Tech & Innovation Hubs Dataset (v1.1).  
-> Compiled and published 2025.  
-> License: CC BY 4.0.  
-> https://kantologist.github.io/African-tech-hubs/
+Azeez, O. (2025). African Tech & Innovation Hubs Dataset (v1.1).
+https://kantologist.github.io/African-tech-hubs/
+Licensed under CC BY 4.0.
 
 A machine-readable citation is provided in `CITATION.cff`.
 
