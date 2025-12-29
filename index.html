@@ -35,8 +35,19 @@
 <body>
   <header>
     <div class="title">
-      <h1>African Tech & Innovation Hubs</h1>
-      <p class="subtitle">Map + searchable directory (geocoded)</p>
+      <div>
+        <h1>African Tech & Innovation Hubs</h1>
+        <p class="subtitle">Map + searchable directory (geocoded)</p>
+      </div>
+      <div class="header-actions">
+        <button id="dashboardToggle" class="dashboard-toggle">Analytics Dashboard</button>
+        <button id="downloadBtn" class="download-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 12V2M8 12L4 8M8 12L12 8M2 14h12" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Download Dataset
+        </button>
+      </div>
     </div>
 
     <div class="controls">
@@ -75,68 +86,73 @@
   </header>
 
   <main>
-    <nav class="tabs">
-      <button class="tab active" data-tab="mapTab">Map</button>
-      <button class="tab" data-tab="dashboardTab">Dashboard</button>
-    </nav>
-  
-    <section id="mapTab" class="tab-panel active">
-      <div class="grid-two">
-        <section class="map-panel">
-          <div id="map"></div>
-        </section>
-  
-        <section class="table-panel">
-          <table id="hubsTable" class="display" style="width:100%">
-            <thead>
-              <tr>
-                <th>Hub</th>
-                <th>Type</th>
-                <th>City</th>
-                <th>Country</th>
-                <th>Website</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Source</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-  
-          <footer class="footnote">
-            <span>Tip: click a map marker to highlight that hub in the table.</span>
-          </footer>
-        </section>
+    <section class="dashboard-panel" id="dashboardPanel">
+      <div class="dashboard-header">
+        <h2>Analytics Dashboard</h2>
+        <button id="closeDashboard" class="dashboard-toggle">Close</button>
       </div>
-    </section>
-  
-    <section id="dashboardTab" class="tab-panel">
-      <div class="dash-grid">
-        <div class="dash-card">
-          <h3>KPIs (filtered)</h3>
-          <div class="kpis">
-            <div class="kpi"><div class="kpi-label">Hubs</div><div class="kpi-value" id="kpiHubs">—</div></div>
-            <div class="kpi"><div class="kpi-label">Countries</div><div class="kpi-value" id="kpiCountries">—</div></div>
-            <div class="kpi"><div class="kpi-label">Cities</div><div class="kpi-value" id="kpiCities">—</div></div>
-            <div class="kpi"><div class="kpi-label">Geocoded</div><div class="kpi-value" id="kpiGeocoded">—</div></div>
+      
+      <div class="stats-grid" id="statsGrid">
+        <!-- Stat cards will be inserted here -->
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Hubs by Country (Top 10)</div>
+          <div class="chart-container">
+            <canvas id="countryChart"></canvas>
           </div>
         </div>
-  
-        <div class="dash-card">
-          <h3>Top Countries (filtered)</h3>
-          <canvas id="chartTopCountries"></canvas>
+
+        <div class="chart-card">
+          <div class="chart-title">Hubs by Type</div>
+          <div class="chart-container pie">
+            <canvas id="typeChart"></canvas>
+          </div>
         </div>
-  
-        <div class="dash-card">
-          <h3>Top Cities (filtered)</h3>
-          <canvas id="chartTopCities"></canvas>
+
+        <div class="chart-card">
+          <div class="chart-title">Hubs by Region</div>
+          <div class="chart-container pie">
+            <canvas id="regionChart"></canvas>
+          </div>
         </div>
-  
-        <div class="dash-card">
-          <h3>Hub Type Mix (filtered)</h3>
-          <canvas id="chartHubTypes"></canvas>
+
+        <div class="chart-card">
+          <div class="chart-title">Geocoding Status</div>
+          <div class="chart-container pie">
+            <canvas id="geocodingChart"></canvas>
+          </div>
         </div>
       </div>
+    </section>
+
+    <section class="map-panel">
+      <div id="map"></div>
+    </section>
+
+    <section class="table-panel">
+      <table id="hubsTable" class="display" style="width:100%">
+        <thead>
+          <tr>
+            <th>Hub</th>
+            <th>Type</th>
+            <th>City</th>
+            <th>Country</th>
+            <th>Website</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <footer class="footnote">
+        <span>
+          Tip: click a map marker to highlight that hub in the table.
+        </span>
+      </footer>
     </section>
   </main>
 
@@ -155,7 +171,9 @@
   <!-- CSV parser -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
   <script src="app.js"></script>
 </body>
 </html>

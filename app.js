@@ -1,4 +1,4 @@
-/* global Papa, L, $ */
+/* global Papa, L, $, Chart */
 
 const CSV_PATH = "./african_tech_hubs_public_v1_geocoded.csv";
 
@@ -9,9 +9,13 @@ let map = null;
 let clusterLayer = null;
 let markersById = new Map(); // id -> marker
 let rowIdByMarker = new Map();
-let chartTopCountries = null;
-let chartTopCities = null;
-let chartHubTypes = null;
+
+let charts = {
+  country: null,
+  type: null,
+  region: null,
+  geocoding: null
+};
 
 function norm(s) {
   return String(s ?? "").trim();
@@ -25,25 +29,6 @@ function toNum(x) {
 function uniqueSorted(values) {
   return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }
-
-function countBy(rows, keyFn) {
-    const m = new Map();
-    rows.forEach(r => {
-      const k = keyFn(r);
-      if (!k) return;
-      m.set(k, (m.get(k) || 0) + 1);
-    });
-    return m;
-  }
-  
-  function topN(map, n) {
-    return [...map.entries()].sort((a,b) => b[1]-a[1]).slice(0, n);
-  }
-  
-  function setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-  }
 
 function setStats(filteredCount) {
   const total = allRows.length;
@@ -208,79 +193,6 @@ function initTable(rows) {
   });
 }
 
-function renderDashboard(rows) {
-    // KPIs
-    const hubs = rows.length;
-    const countries = new Set(rows.map(r => r.country).filter(Boolean)).size;
-    const cities = new Set(rows.map(r => r.city).filter(Boolean)).size;
-    const geocoded = rows.filter(r => r.latitude != null && r.longitude != null).length;
-  
-    setText("kpiHubs", hubs.toLocaleString());
-    setText("kpiCountries", countries.toLocaleString());
-    setText("kpiCities", cities.toLocaleString());
-    setText("kpiGeocoded", `${geocoded.toLocaleString()} (${hubs ? Math.round((geocoded/hubs)*100) : 0}%)`);
-  
-    // Top Countries
-    const countryMap = countBy(rows, r => r.country);
-    const topCountries = topN(countryMap, 12);
-    const tcLabels = topCountries.map(x => x[0]);
-    const tcData = topCountries.map(x => x[1]);
-  
-    // Top Cities (include country to disambiguate)
-    const cityMap = countBy(rows, r => (r.city && r.country) ? `${r.city}, ${r.country}` : "");
-    const topCities = topN(cityMap, 12);
-    const tciLabels = topCities.map(x => x[0]);
-    const tciData = topCities.map(x => x[1]);
-  
-    // Hub Type Mix
-    const typeMap = countBy(rows, r => r.hub_type);
-    const types = [...typeMap.entries()].sort((a,b)=>b[1]-a[1]);
-    const htLabels = types.map(x => x[0]);
-    const htData = types.map(x => x[1]);
-  
-    // Create/update charts
-    const mk = (canvasId, existing, cfg) => {
-      const ctx = document.getElementById(canvasId);
-      if (!ctx) return existing;
-      if (existing) {
-        existing.data.labels = cfg.data.labels;
-        existing.data.datasets[0].data = cfg.data.datasets[0].data;
-        existing.update();
-        return existing;
-      }
-      return new Chart(ctx, cfg);
-    };
-  
-    chartTopCountries = mk("chartTopCountries", chartTopCountries, {
-      type: "bar",
-      data: { labels: tcLabels, datasets: [{ label: "Hubs", data: tcData }] },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { x: { ticks: { maxRotation: 60, minRotation: 0 } } }
-      }
-    });
-  
-    chartTopCities = mk("chartTopCities", chartTopCities, {
-      type: "bar",
-      data: { labels: tciLabels, datasets: [{ label: "Hubs", data: tciData }] },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { x: { ticks: { maxRotation: 60, minRotation: 0 } } }
-      }
-    });
-  
-    chartHubTypes = mk("chartHubTypes", chartHubTypes, {
-      type: "doughnut",
-      data: { labels: htLabels, datasets: [{ label: "Hubs", data: htData }] },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: "bottom" } }
-      }
-    });
-  }
-
 function highlightRow(rowid) {
   // scroll + highlight
   document.querySelectorAll("#hubsTable tbody tr").forEach(tr => tr.classList.remove("row-highlight"));
@@ -308,7 +220,10 @@ function applyFilters() {
   // update markers
   rebuildMarkers(rows);
 
-  renderDashboard(rows)
+  // update dashboard if visible
+  if (document.getElementById("dashboardPanel").classList.contains("active")) {
+    updateDashboard(rows);
+  }
 }
 
 function wireControls() {
@@ -331,20 +246,31 @@ function wireControls() {
     applyFilters();
   });
 
-    // Tabs
-    document.querySelectorAll(".tab").forEach(btn => {
-        btn.addEventListener("click", () => {
-          document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
-          document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-          btn.classList.add("active");
-          document.getElementById(btn.dataset.tab).classList.add("active");
+  // Dashboard toggle
+  document.getElementById("dashboardToggle").addEventListener("click", () => {
+    const panel = document.getElementById("dashboardPanel");
+    const toggle = document.getElementById("dashboardToggle");
+    const main = document.querySelector("main");
+    panel.classList.toggle("active");
+    toggle.classList.toggle("active");
+    main.classList.toggle("dashboard-mode");
     
-          // Leaflet needs a resize invalidate when shown
-          if (btn.dataset.tab === "mapTab" && map) {
-            setTimeout(() => map.invalidateSize(), 150);
-          }
-        });
-      });
+    if (panel.classList.contains("active")) {
+      updateDashboard(filteredRows());
+    }
+  });
+
+  document.getElementById("closeDashboard").addEventListener("click", () => {
+    const panel = document.getElementById("dashboardPanel");
+    const toggle = document.getElementById("dashboardToggle");
+    const main = document.querySelector("main");
+    panel.classList.remove("active");
+    toggle.classList.remove("active");
+    main.classList.remove("dashboard-mode");
+  });
+
+  // Download button
+  document.getElementById("downloadBtn").addEventListener("click", downloadDataset);
 }
 
 function parseCsv() {
@@ -380,6 +306,317 @@ function normalizeRows(rows) {
       longitude: lng
     };
   });
+}
+
+function calculateAnalytics(rows) {
+  const total = rows.length;
+  const geocoded = rows.filter(r => r.latitude != null && r.longitude != null).length;
+  const withWebsite = rows.filter(r => r.website).length;
+  const withEmail = rows.filter(r => r.email).length;
+
+  // Country distribution
+  const countryCounts = {};
+  rows.forEach(r => {
+    const country = r.country || "Unknown";
+    countryCounts[country] = (countryCounts[country] || 0) + 1;
+  });
+  const topCountries = Object.entries(countryCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+
+  // Type distribution
+  const typeCounts = {};
+  rows.forEach(r => {
+    const type = r.hub_type || "Unknown";
+    typeCounts[type] = (typeCounts[type] || 0) + 1;
+  });
+
+  // Region distribution
+  const regionCounts = {};
+  rows.forEach(r => {
+    const region = r.region || "Unknown";
+    regionCounts[region] = (regionCounts[region] || 0) + 1;
+  });
+
+  return {
+    total,
+    geocoded,
+    geocodedPct: total ? Math.round((geocoded / total) * 100) : 0,
+    withWebsite,
+    withWebsitePct: total ? Math.round((withWebsite / total) * 100) : 0,
+    withEmail,
+    withEmailPct: total ? Math.round((withEmail / total) * 100) : 0,
+    topCountries,
+    typeCounts,
+    regionCounts
+  };
+}
+
+function updateDashboard(rows) {
+  const analytics = calculateAnalytics(rows);
+  const allAnalytics = calculateAnalytics(allRows);
+
+  // Update stat cards
+  const statsGrid = document.getElementById("statsGrid");
+  statsGrid.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Total Hubs</div>
+      <div class="stat-value">${analytics.total.toLocaleString()}</div>
+      <div class="stat-change">of ${allAnalytics.total.toLocaleString()} total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Geocoded</div>
+      <div class="stat-value">${analytics.geocoded.toLocaleString()}</div>
+      <div class="stat-change">${analytics.geocodedPct}% coverage</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">With Website</div>
+      <div class="stat-value">${analytics.withWebsite.toLocaleString()}</div>
+      <div class="stat-change">${analytics.withWebsitePct}% of hubs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">With Email</div>
+      <div class="stat-value">${analytics.withEmail.toLocaleString()}</div>
+      <div class="stat-change">${analytics.withEmailPct}% of hubs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Unique Countries</div>
+      <div class="stat-value">${new Set(rows.map(r => r.country)).size}</div>
+      <div class="stat-change">Countries represented</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Hub Types</div>
+      <div class="stat-value">${Object.keys(analytics.typeCounts).length}</div>
+      <div class="stat-change">Different types</div>
+    </div>
+  `;
+
+  // Update charts
+  updateCountryChart(analytics.topCountries);
+  updateTypeChart(analytics.typeCounts);
+  updateRegionChart(analytics.regionCounts);
+  updateGeocodingChart(analytics.geocoded, analytics.total - analytics.geocoded);
+}
+
+function updateCountryChart(data) {
+  const ctx = document.getElementById("countryChart").getContext("2d");
+  
+  if (charts.country) {
+    charts.country.destroy();
+  }
+
+  charts.country = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: data.map(d => d[0]),
+      datasets: [{
+        label: "Number of Hubs",
+        data: data.map(d => d[1]),
+        backgroundColor: "rgba(125,211,252,0.6)",
+        borderColor: "rgba(125,211,252,1)",
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: "rgba(156,163,175,0.8)"
+          },
+          grid: {
+            color: "rgba(255,255,255,0.05)"
+          }
+        },
+        x: {
+          ticks: {
+            color: "rgba(156,163,175,0.8)"
+          },
+          grid: {
+            color: "rgba(255,255,255,0.05)"
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateTypeChart(data) {
+  const ctx = document.getElementById("typeChart").getContext("2d");
+  
+  if (charts.type) {
+    charts.type.destroy();
+  }
+
+  const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
+  const colors = [
+    "rgba(125,211,252,0.8)",
+    "rgba(59,130,246,0.8)",
+    "rgba(147,197,253,0.8)",
+    "rgba(96,165,250,0.8)",
+    "rgba(37,99,235,0.8)",
+    "rgba(29,78,216,0.8)"
+  ];
+
+  charts.type = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: entries.map(d => d[0]),
+      datasets: [{
+        data: entries.map(d => d[1]),
+        backgroundColor: entries.map((_, i) => colors[i % colors.length]),
+        borderColor: "rgba(15,27,51,1)",
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "right",
+          labels: {
+            color: "rgba(229,231,235,0.9)",
+            padding: 12
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateRegionChart(data) {
+  const ctx = document.getElementById("regionChart").getContext("2d");
+  
+  if (charts.region) {
+    charts.region.destroy();
+  }
+
+  const entries = Object.entries(data).filter(d => d[0] !== "Unknown").sort((a, b) => b[1] - a[1]);
+  const colors = [
+    "rgba(125,211,252,0.8)",
+    "rgba(59,130,246,0.8)",
+    "rgba(147,197,253,0.8)",
+    "rgba(96,165,250,0.8)",
+    "rgba(37,99,235,0.8)"
+  ];
+
+  charts.region = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: entries.map(d => d[0]),
+      datasets: [{
+        data: entries.map(d => d[1]),
+        backgroundColor: entries.map((_, i) => colors[i % colors.length]),
+        borderColor: "rgba(15,27,51,1)",
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "right",
+          labels: {
+            color: "rgba(229,231,235,0.9)",
+            padding: 12
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateGeocodingChart(geocoded, notGeocoded) {
+  const ctx = document.getElementById("geocodingChart").getContext("2d");
+  
+  if (charts.geocoding) {
+    charts.geocoding.destroy();
+  }
+
+  charts.geocoding = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: ["Geocoded", "Not Geocoded"],
+      datasets: [{
+        data: [geocoded, notGeocoded],
+        backgroundColor: [
+          "rgba(125,211,252,0.8)",
+          "rgba(156,163,175,0.4)"
+        ],
+        borderColor: "rgba(15,27,51,1)",
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "right",
+          labels: {
+            color: "rgba(229,231,235,0.9)",
+            padding: 12
+          }
+        }
+      }
+    }
+  });
+}
+
+function downloadDataset() {
+  const rows = filteredRows();
+  
+  // Convert rows to CSV format
+  if (rows.length === 0) {
+    alert("No data to download. Please adjust your filters.");
+    return;
+  }
+
+  // Get all unique keys from rows
+  const keys = new Set();
+  rows.forEach(row => {
+    Object.keys(row).forEach(key => {
+      if (key !== "_id") keys.add(key);
+    });
+  });
+  const headers = Array.from(keys).sort();
+
+  // Create CSV content
+  const csvRows = [];
+  csvRows.push(headers.join(","));
+
+  rows.forEach(row => {
+    const values = headers.map(header => {
+      const value = row[header] || "";
+      // Escape quotes and wrap in quotes if contains comma or quote
+      if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+        return `"${String(value).replace(/"/g, '""')}"`;
+      }
+      return value;
+    });
+    csvRows.push(values.join(","));
+  });
+
+  const csvContent = csvRows.join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute("href", url);
+  link.setAttribute("download", `african_tech_hubs_${new Date().toISOString().split("T")[0]}.csv`);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 async function main() {
