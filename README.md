@@ -14,6 +14,14 @@ This repository provides:
 
 ---
 
+## 👤 Author & Maintainer
+
+**Oluwafemi Azeez**  
+GitHub: https://github.com/kantologist  
+
+This project is independently compiled, verified, and maintained to support
+open research, ecosystem mapping, and data-driven innovation policy across Africa.
+
 ## 📦 What’s Included
 
 ### Interactive Website
