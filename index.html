@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>African Tech & Innovation Hubs — Interactive Map + Directory</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+
+  <!-- MarkerCluster -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+  />
+
+  <!-- DataTables -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css"
+  />
+</head>
+
+<body>
+  <header>
+    <div class="title">
+      <h1>African Tech & Innovation Hubs</h1>
+      <p class="subtitle">Map + searchable directory (geocoded)</p>
+    </div>
+
+    <div class="controls">
+      <div class="control">
+        <label for="countrySelect">Country</label>
+        <select id="countrySelect">
+          <option value="">All</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="regionSelect">Region</label>
+        <select id="regionSelect">
+          <option value="">All</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="typeSelect">Hub type</label>
+        <select id="typeSelect">
+          <option value="">All</option>
+        </select>
+      </div>
+
+      <div class="control control-wide">
+        <label for="searchInput">Search</label>
+        <input id="searchInput" type="text" placeholder="Search hub name, city, country…" />
+      </div>
+
+      <div class="control">
+        <button id="resetBtn" type="button">Reset</button>
+      </div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <main>
+    <section class="map-panel">
+      <div id="map"></div>
+    </section>
+
+    <section class="table-panel">
+      <table id="hubsTable" class="display" style="width:100%">
+        <thead>
+          <tr>
+            <th>Hub</th>
+            <th>Type</th>
+            <th>City</th>
+            <th>Country</th>
+            <th>Website</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <footer class="footnote">
+        <span>
+          Tip: click a map marker to highlight that hub in the table.
+        </span>
+      </footer>
+    </section>
+  </main>
+
+  <!-- JS deps -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <!-- CSV parser -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script src="app.js"></script>
+</body>
+</html>
